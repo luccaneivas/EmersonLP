@@ -105,6 +105,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // --- WEBHOOK N8N ---
+    // Substitua pela URL real do webhook no n8n
+    var WEBHOOK_URL = 'https://conexoes.skychat.com.br/webhook/emerson-auxilio-acidente';
+
+    function sendToWebhook(data) {
+        fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).catch(function (error) {
+            console.error('Erro ao enviar dados para o webhook:', error);
+        });
+    }
+
     // --- FORM SUBMISSION ---
     var form = document.getElementById('leadForm');
     if (form) {
@@ -120,9 +134,35 @@ document.addEventListener('DOMContentLoaded', function () {
             var sequela = document.querySelector('input[name="sequela"]:checked');
 
             if (!nome || !whatsapp || !cidade || !estado || !trabalha || !acidente || !sequela) {
-                alert('Por favor, preencha todos os campos.');
+                // Remove erro anterior se existir
+                var oldError = form.querySelector('.form-error');
+                if (oldError) oldError.remove();
+
+                // Cria mensagem de erro visual
+                var errorMsg = document.createElement('p');
+                errorMsg.className = 'form-error';
+                errorMsg.textContent = 'Por favor, preencha todos os campos.';
+                form.querySelector('button[type="submit"]').insertAdjacentElement('beforebegin', errorMsg);
+
+                // Remove depois de 4 segundos
+                setTimeout(function () { errorMsg.remove(); }, 4000);
                 return;
             }
+
+            // Remove erro se existir ao enviar com sucesso
+            var existingError = form.querySelector('.form-error');
+            if (existingError) existingError.remove();
+
+            // Envia para o webhook do n8n
+            sendToWebhook({
+                nome: nome,
+                whatsapp: whatsapp,
+                cidade: cidade,
+                estado: estado,
+                trabalhaAtualmente: trabalha.value,
+                sofreuAcidente: acidente.value,
+                ficouComSequela: sequela.value
+            });
 
             // Build WhatsApp message
             var message = 'Olá! Vim pela landing page do Auxílio-Acidente.\n\n' +
